@@ -10,6 +10,7 @@ import com.universite.repository.FiliereRepository;
 import com.universite.repository.FormationRepository;
 import com.universite.repository.PromotionRepository;
 import com.universite.service.FormationService;
+import com.universite.service.FormationAccessService;
 import com.universite.util.NiveauEtudeParser;
 import com.universite.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class FormationServiceImpl implements FormationService {
     private final FiliereRepository filiereRepository;
     private final PromotionRepository promotionRepository;
     private final CoursRepository coursRepository;
+    private final FormationAccessService formationAccessService;
 
     @Override
     @Transactional
@@ -58,8 +60,18 @@ public class FormationServiceImpl implements FormationService {
 
     @Override
     @Transactional(readOnly = true)
-    public FormationResponse getById(Long id) {
-        return FormationMapper.toResponse(findFormation(id));
+    public FormationResponse getById(Long id, String userEmail) {
+        Formation formation = findFormation(id);
+        formationAccessService.assertCanReadFormation(formation, userEmail);
+        return FormationMapper.toResponse(formation);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FormationResponse getBySlug(String slug, String userEmail) {
+        Formation formation = findFormationBySlug(slug);
+        formationAccessService.assertCanReadFormation(formation, userEmail);
+        return FormationMapper.toResponse(formation);
     }
 
     @Override
@@ -96,6 +108,14 @@ public class FormationServiceImpl implements FormationService {
 
     private Formation findFormation(Long id) {
         return formationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Formation introuvable"));
+    }
+
+    private Formation findFormationBySlug(String slug) {
+        if (slug == null || slug.isBlank()) {
+            throw new RuntimeException("Slug de formation invalide");
+        }
+        return formationRepository.findBySlug(slug.trim())
                 .orElseThrow(() -> new RuntimeException("Formation introuvable"));
     }
 

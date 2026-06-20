@@ -5,6 +5,7 @@ import com.universite.dto.FiliereRequest;
 import com.universite.dto.FiliereResponse;
 import com.universite.entity.Filiere;
 import com.universite.mapper.FiliereMapper;
+import com.universite.mapper.FormationParcoursMapper;
 import com.universite.repository.EtudiantRepository;
 import com.universite.repository.FiliereRepository;
 import com.universite.repository.FormationRepository;
@@ -23,6 +24,7 @@ public class FiliereServiceImpl implements FiliereService {
     private final FiliereRepository filiereRepository;
     private final FormationRepository formationRepository;
     private final EtudiantRepository etudiantRepository;
+    private final FormationParcoursMapper formationParcoursMapper;
 
     @Override
     @Transactional
@@ -60,7 +62,8 @@ public class FiliereServiceImpl implements FiliereService {
         return FiliereMapper.toDetailResponse(
                 filiere,
                 formationRepository.findByFiliereId(id),
-                etudiantRepository.findByFiliereId(id)
+                etudiantRepository.findByFiliereId(id),
+                formationParcoursMapper
         );
     }
 

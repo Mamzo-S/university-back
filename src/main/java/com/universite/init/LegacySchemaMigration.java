@@ -215,6 +215,7 @@ public class LegacySchemaMigration implements CommandLineRunner {
         addColumnIfMissing("formations", "slug", "VARCHAR(255)");
         addColumnIfMissing("formations", "description", "TEXT");
         addColumnIfMissing("formations", "image_url", "VARCHAR(255)");
+        addColumnIfMissing("formations", "contenu_parcours", "TEXT");
 
         if (!tableExists("promotions")) {
             return;

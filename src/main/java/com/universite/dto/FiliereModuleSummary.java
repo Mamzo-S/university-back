@@ -14,6 +14,9 @@ public class FiliereModuleSummary {
     private Long id;
     private String titre;
     private String slug;
+    private String description;
+    private String imageUrl;
     private String niveau;
     private String typeFormation;
+    private Integer subModuleCount;
 }

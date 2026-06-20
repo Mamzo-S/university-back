@@ -30,7 +30,8 @@ public final class FiliereMapper {
     public static FiliereDetailResponse toDetailResponse(
             Filiere filiere,
             List<Formation> modules,
-            List<Etudiant> etudiants
+            List<Etudiant> etudiants,
+            FormationParcoursMapper parcoursMapper
     ) {
         return FiliereDetailResponse.builder()
                 .id(filiere.getId())
@@ -43,7 +44,10 @@ public final class FiliereMapper {
                                 FormationMapper::resolveTitre,
                                 Comparator.nullsLast(String::compareToIgnoreCase)
                         ))
-                        .map(FiliereMapper::toModuleSummary)
+                        .map(formation -> toModuleSummary(
+                                formation,
+                                parcoursMapper.countSubModules(formation)
+                        ))
                         .toList())
                 .etudiants(etudiants.stream()
                         .sorted(Comparator.comparing(
@@ -55,17 +59,20 @@ public final class FiliereMapper {
                 .build();
     }
 
-    private static FiliereModuleSummary toModuleSummary(Formation formation) {
+    private static FiliereModuleSummary toModuleSummary(Formation formation, int subModuleCount) {
         return FiliereModuleSummary.builder()
                 .id(formation.getId())
                 .titre(FormationMapper.resolveTitre(formation))
                 .slug(formation.getSlug())
+                .description(formation.getDescription())
+                .imageUrl(formation.getImageUrl())
                 .niveau(
                         formation.getNiveau() != null
                                 ? formation.getNiveau().name()
                                 : null
                 )
                 .typeFormation(formation.getTypeFormation())
+                .subModuleCount(subModuleCount)
                 .build();
     }
 

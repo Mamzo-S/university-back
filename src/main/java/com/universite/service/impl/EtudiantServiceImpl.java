@@ -10,6 +10,7 @@ import com.universite.entity.*;
 import com.universite.export.ExcelExporter;
 import com.universite.mapper.EtudiantMapper;
 import com.universite.mapper.FormationMapper;
+import com.universite.mapper.FormationParcoursMapper;
 import com.universite.mapper.MembreMapper;
 import com.universite.repository.*;
 import com.universite.service.EtudiantService;
@@ -44,6 +45,7 @@ public class EtudiantServiceImpl implements EtudiantService {
     private final GroupeEtudiantRepository groupeEtudiantRepository;
     private final FiliereRepository filiereRepository;
     private final FormationRepository formationRepository;
+    private final FormationParcoursMapper formationParcoursMapper;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -331,12 +333,15 @@ public class EtudiantServiceImpl implements EtudiantService {
                         .id(formation.getId())
                         .titre(FormationMapper.resolveTitre(formation))
                         .slug(formation.getSlug())
+                        .description(formation.getDescription())
+                        .imageUrl(formation.getImageUrl())
                         .niveau(
                                 formation.getNiveau() != null
                                         ? formation.getNiveau().name()
                                         : null
                         )
                         .typeFormation(formation.getTypeFormation())
+                        .subModuleCount(formationParcoursMapper.countSubModules(formation))
                         .build())
                 .toList();
 

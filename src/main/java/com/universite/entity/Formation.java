@@ -34,6 +34,9 @@ public class Formation {
 
     private String imageUrl;
 
+    @Column(name = "contenu_parcours", columnDefinition = "TEXT")
+    private String contenuParcours;
+
     private String typeFormation;
 
     @Enumerated(EnumType.STRING)

@@ -11,7 +11,9 @@ public interface FormationService {
 
     List<FormationResponse> getAll();
 
-    FormationResponse getById(Long id);
+    FormationResponse getById(Long id, String userEmail);
+
+    FormationResponse getBySlug(String slug, String userEmail);
 
     FormationResponse update(Long id, FormationRequest request);
 
