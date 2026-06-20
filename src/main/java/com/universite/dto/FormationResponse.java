@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -27,4 +28,5 @@ public class FormationResponse {
     private BigDecimal montant;
     private Long filiereId;
     private String filiereNom;
+    private List<String> formateurNoms;
 }

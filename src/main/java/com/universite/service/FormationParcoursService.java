@@ -8,5 +8,5 @@ public interface FormationParcoursService {
 
     FormationParcoursDto getParcoursBySlug(String slug, String userEmail);
 
-    FormationParcoursDto updateParcours(Long formationId, FormationParcoursDto parcours);
+    FormationParcoursDto updateParcours(Long formationId, FormationParcoursDto parcours, String userEmail);
 }

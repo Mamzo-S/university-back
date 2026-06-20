@@ -21,9 +21,12 @@ public class FormationController {
     private final FormationParcoursService formationParcoursService;
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'RESPONSABLE_FORMATION')")
-    public FormationResponse create(@RequestBody FormationRequest request) {
-        return formationService.create(request);
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'RESPONSABLE_FORMATION', 'FORMATEUR')")
+    public FormationResponse create(
+            @RequestBody FormationRequest request,
+            Authentication authentication
+    ) {
+        return formationService.create(request, authentication.getName());
     }
 
     @GetMapping
@@ -69,23 +72,28 @@ public class FormationController {
     }
 
     @PutMapping("/{id}/parcours")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'RESPONSABLE_FORMATION')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'RESPONSABLE_FORMATION', 'FORMATEUR')")
     public FormationParcoursDto updateParcours(
             @PathVariable Long id,
-            @RequestBody FormationParcoursDto parcours
+            @RequestBody FormationParcoursDto parcours,
+            Authentication authentication
     ) {
-        return formationParcoursService.updateParcours(id, parcours);
+        return formationParcoursService.updateParcours(id, parcours, authentication.getName());
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'RESPONSABLE_FORMATION')")
-    public FormationResponse update(@PathVariable Long id, @RequestBody FormationRequest request) {
-        return formationService.update(id, request);
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'RESPONSABLE_FORMATION', 'FORMATEUR')")
+    public FormationResponse update(
+            @PathVariable Long id,
+            @RequestBody FormationRequest request,
+            Authentication authentication
+    ) {
+        return formationService.update(id, request, authentication.getName());
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'RESPONSABLE_FORMATION')")
-    public void delete(@PathVariable Long id) {
-        formationService.delete(id);
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'RESPONSABLE_FORMATION', 'FORMATEUR')")
+    public void delete(@PathVariable Long id, Authentication authentication) {
+        formationService.delete(id, authentication.getName());
     }
 }

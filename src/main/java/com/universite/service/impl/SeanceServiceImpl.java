@@ -6,6 +6,7 @@ import com.universite.entity.*;
 import com.universite.mapper.SeanceMapper;
 import com.universite.repository.*;
 import com.universite.service.EmploiDuTempsService;
+import com.universite.service.NotificationService;
 import com.universite.service.SeanceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ public class SeanceServiceImpl implements SeanceService {
     private final PromotionRepository promotionRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final EmploiDuTempsService emploiDuTempsService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -83,7 +85,9 @@ public class SeanceServiceImpl implements SeanceService {
     public SeanceResponse create(SeanceRequest request) {
         Seance seance = buildSeance(new Seance(), request);
         validateNoConflict(seance, null);
-        return SeanceMapper.toResponse(seanceRepository.save(seance));
+        Seance saved = seanceRepository.save(seance);
+        notificationService.notifySeanceCreated(saved);
+        return SeanceMapper.toResponse(saved);
     }
 
     @Override
@@ -91,18 +95,32 @@ public class SeanceServiceImpl implements SeanceService {
     public SeanceResponse update(Long id, SeanceRequest request) {
         Seance seance = seanceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Séance introuvable"));
+        Seance previousState = snapshotSeance(seance);
         buildSeance(seance, request);
         validateNoConflict(seance, id);
-        return SeanceMapper.toResponse(seanceRepository.save(seance));
+        Seance saved = seanceRepository.save(seance);
+        notificationService.notifySeanceUpdated(saved, previousState);
+        return SeanceMapper.toResponse(saved);
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
-        if (!seanceRepository.existsById(id)) {
-            throw new RuntimeException("Séance introuvable");
-        }
-        seanceRepository.deleteById(id);
+        Seance seance = seanceRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Séance introuvable"));
+        notificationService.notifySeanceDeleted(seance);
+        seanceRepository.delete(seance);
+    }
+
+    private Seance snapshotSeance(Seance source) {
+        return Seance.builder()
+                .id(source.getId())
+                .formateur(source.getFormateur())
+                .cours(source.getCours())
+                .jourSemaine(source.getJourSemaine())
+                .heureDebut(source.getHeureDebut())
+                .heureFin(source.getHeureFin())
+                .build();
     }
 
     private Seance buildSeance(Seance seance, SeanceRequest request) {
@@ -200,17 +218,9 @@ public class SeanceServiceImpl implements SeanceService {
     }
 
     private void validateNoConflict(Seance seance, Long excludeId) {
-        Long promotionId = seance.getEmploiDuTemps().getPromotion().getId();
-
-        List<Seance> promotionSessions = seanceRepository.findByEmploiDuTemps_Promotion_Id(promotionId);
-        for (Seance existing : promotionSessions) {
-            if (excludeId != null && excludeId.equals(existing.getId())) {
-                continue;
-            }
-            if (hasConflict(seance, existing)) {
-                throw new RuntimeException("Conflit d'horaire pour cette promotion");
-            }
-        }
+        Formation formation = seance.getCours().getFormation();
+        Long filiereId = formation.getFiliere() != null ? formation.getFiliere().getId() : null;
+        NiveauEtude niveau = formation.getNiveau();
 
         List<Seance> formateurSessions = seanceRepository.findByFormateurId(seance.getFormateur().getId());
         for (Seance existing : formateurSessions) {
@@ -218,9 +228,87 @@ public class SeanceServiceImpl implements SeanceService {
                 continue;
             }
             if (hasConflict(seance, existing)) {
-                throw new RuntimeException("Conflit d'horaire pour cet enseignant");
+                throw new RuntimeException(
+                        "Conflit d'horaire : cet enseignant a déjà une séance le "
+                                + formatJour(existing.getJourSemaine())
+                                + " de "
+                                + formatPlageHoraire(existing)
+                                + " ("
+                                + resolveCoursLabel(existing)
+                                + ")."
+                );
             }
         }
+
+        if (filiereId != null && niveau != null) {
+            List<Seance> cohortSessions = seanceRepository.findByFiliereAndNiveauAndJour(
+                    filiereId,
+                    niveau,
+                    seance.getJourSemaine()
+            );
+            String filiereNom = formation.getFiliere().getNom();
+
+            for (Seance existing : cohortSessions) {
+                if (excludeId != null && excludeId.equals(existing.getId())) {
+                    continue;
+                }
+                if (hasConflict(seance, existing)) {
+                    throw new RuntimeException(
+                            "Conflit d'horaire : une séance existe déjà pour la filière "
+                                    + filiereNom
+                                    + " ("
+                                    + formatNiveau(niveau)
+                                    + ") le "
+                                    + formatJour(existing.getJourSemaine())
+                                    + " de "
+                                    + formatPlageHoraire(existing)
+                                    + " avec "
+                                    + resolveFormateurNom(existing.getFormateur())
+                                    + "."
+                    );
+                }
+            }
+        }
+    }
+
+    private String resolveCoursLabel(Seance seance) {
+        if (seance.getCours() == null) {
+            return "cours inconnu";
+        }
+        if (seance.getCours().getNom() != null && !seance.getCours().getNom().isBlank()) {
+            return seance.getCours().getNom();
+        }
+        return "cours #" + seance.getCours().getId();
+    }
+
+    private String resolveFormateurNom(Formateur formateur) {
+        Utilisateur utilisateur = formateur.getUtilisateur();
+        if (utilisateur == null) {
+            return "enseignant inconnu";
+        }
+        return (utilisateur.getPrenom() + " " + utilisateur.getNom()).trim();
+    }
+
+    private String formatJour(JourSemaine jour) {
+        return switch (jour) {
+            case LUNDI -> "lundi";
+            case MARDI -> "mardi";
+            case MERCREDI -> "mercredi";
+            case JEUDI -> "jeudi";
+            case VENDREDI -> "vendredi";
+            case SAMEDI -> "samedi";
+            case DIMANCHE -> "dimanche";
+        };
+    }
+
+    private String formatPlageHoraire(Seance seance) {
+        return seance.getHeureDebut().toString().substring(0, 5)
+                + "–"
+                + seance.getHeureFin().toString().substring(0, 5);
+    }
+
+    private String formatNiveau(NiveauEtude niveau) {
+        return niveau.name().replace('_', ' ');
     }
 
     private boolean hasConflict(Seance a, Seance b) {

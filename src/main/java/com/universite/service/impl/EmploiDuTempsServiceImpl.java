@@ -83,26 +83,28 @@ public class EmploiDuTempsServiceImpl implements EmploiDuTempsService {
         throw new RuntimeException("Consultation de l'emploi du temps non disponible pour ce rôle");
     }
 
-    /** Séances des modules accessibles (filière + niveau, ou module de la promotion). */
+    /** Séances des modules accessibles (filière + niveau de l'étudiant). */
     private List<SeanceResponse> listSeancesForEtudiant(Etudiant etudiant) {
-        Filiere filiere = EtudiantProfileUtils.resolveFiliere(etudiant);
+        Filiere filiere = EtudiantProfileUtils.getStudentFiliere(etudiant);
         NiveauEtude niveau = etudiant.getNiveau();
 
-        Long promotionFormationId = etudiant.getPromotion() != null
-                && etudiant.getPromotion().getFormation() != null
-                ? etudiant.getPromotion().getFormation().getId()
-                : null;
-
-        if (filiere == null && promotionFormationId == null) {
+        if (filiere == null) {
             throw new RuntimeException("Aucune filière associée à cet étudiant");
         }
-        if (niveau == null && promotionFormationId == null) {
+        if (niveau == null) {
             throw new RuntimeException("Aucun niveau d'études associé à cet étudiant");
         }
 
-        Long filiereId = filiere != null ? filiere.getId() : null;
+        Long promotionFormationId = etudiant.getPromotion() != null
+                && etudiant.getPromotion().getFormation() != null
+                && EtudiantProfileUtils.belongsToFiliere(
+                        etudiant.getPromotion().getFormation(),
+                        filiere
+                )
+                ? etudiant.getPromotion().getFormation().getId()
+                : null;
 
-        return seanceRepository.findVisibleForEtudiant(filiereId, niveau, promotionFormationId).stream()
+        return seanceRepository.findVisibleForEtudiant(filiere.getId(), niveau, promotionFormationId).stream()
                 .sorted(Comparator
                         .comparing((Seance s) -> s.getJourSemaine().getIndex())
                         .thenComparing(Seance::getHeureDebut))

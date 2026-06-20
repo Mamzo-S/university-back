@@ -84,7 +84,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/formations", "/api/formations/**")
                         .authenticated()
                         .requestMatchers("/api/formations/**")
-                        .hasAnyAuthority("ADMIN", "RESPONSABLE_FORMATION")
+                        .hasAnyAuthority(TEACHING_AUTHORITIES)
                         .requestMatchers(HttpMethod.GET, "/api/promotions/**")
                         .hasAnyAuthority(STAFF_AUTHORITIES)
                         .requestMatchers("/api/promotions/**")
@@ -101,13 +101,20 @@ public class SecurityConfig {
                         .hasAnyAuthority("ADMIN", "FORMATEUR", "RESPONSABLE_FORMATION", "ETUDIANT")
                         .requestMatchers("/api/emplois-du-temps/**")
                         .hasAnyAuthority("ADMIN", "RESPONSABLE_FORMATION")
-                        .requestMatchers(HttpMethod.GET, "/api/formateurs/**")
+                        .requestMatchers(HttpMethod.GET, "/api/notifications/**")
+                        .hasAnyAuthority("FORMATEUR", "ETUDIANT")
+                        .requestMatchers(HttpMethod.PATCH, "/api/notifications/**")
+                        .hasAnyAuthority("FORMATEUR", "ETUDIANT")
+                        .requestMatchers("/api/notifications/**")
+                        .hasAnyAuthority("ADMIN", "RESPONSABLE_FORMATION")
+                        .requestMatchers(HttpMethod.GET, "/api/formateurs/me/**")
+                        .hasAuthority("FORMATEUR")
+                        .requestMatchers(HttpMethod.GET, "/api/formateurs", "/api/formateurs/**")
                         .hasAnyAuthority("ADMIN", "RESPONSABLE_FORMATION", "FORMATEUR")
                         .requestMatchers(HttpMethod.PUT, "/api/formateurs/*/formations")
                         .hasAnyAuthority("ADMIN", "RESPONSABLE_FORMATION")
                         .requestMatchers(
                                 "/api/administrateurs/**",
-                                "/api/formateurs/**",
                                 "/api/tuteurs/**",
                                 "/api/responsables-formation/**",
                                 "/api/services-insertion/**"

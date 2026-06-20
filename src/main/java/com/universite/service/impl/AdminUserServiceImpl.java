@@ -6,6 +6,7 @@ import com.universite.entity.*;
 import com.universite.mapper.EtudiantMapper;
 import com.universite.mapper.MembreMapper;
 import com.universite.repository.*;
+import com.universite.security.UserManagementAuthorization;
 import com.universite.service.AdminUserService;
 import com.universite.util.NiveauEtudeParser;
 import lombok.RequiredArgsConstructor;
@@ -29,15 +30,17 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final PersonnelRepository personnelRepository;
     private final PromotionRepository promotionRepository;
     private final NoteRepository noteRepository;
+    private final SeanceRepository seanceRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserManagementAuthorization userManagementAuthorization;
 
     @Override
     @Transactional
-    public MembreResponse updateUser(Long utilisateurId, UpdateUserRequest request, String adminEmail) {
-        assertAdmin(adminEmail);
-
+    public MembreResponse updateUser(Long utilisateurId, UpdateUserRequest request, String actorEmail) {
         Utilisateur utilisateur = utilisateurRepository.findById(utilisateurId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+
+        userManagementAuthorization.assertCanManageUser(actorEmail, utilisateur);
 
         if (request.getEmail() != null && !request.getEmail().isBlank()) {
             String email = request.getEmail().trim();
@@ -77,15 +80,18 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
-    public void deleteUser(Long utilisateurId, String adminEmail) {
-        Utilisateur admin = assertAdmin(adminEmail);
+    public void deleteUser(Long utilisateurId, String actorEmail) {
+        Utilisateur actor = utilisateurRepository.findByEmail(actorEmail)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
-        if (admin.getId().equals(utilisateurId)) {
+        if (actor.getId().equals(utilisateurId)) {
             throw new RuntimeException("Vous ne pouvez pas supprimer votre propre compte");
         }
 
         Utilisateur utilisateur = utilisateurRepository.findById(utilisateurId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+
+        userManagementAuthorization.assertCanManageUser(actorEmail, utilisateur);
 
         if (DEFAULT_ADMIN_EMAIL.equalsIgnoreCase(utilisateur.getEmail())) {
             throw new RuntimeException("Le compte administrateur par défaut ne peut pas être supprimé");
@@ -107,25 +113,20 @@ public class AdminUserServiceImpl implements AdminUserService {
             etudiantRepository.delete(etudiant);
         });
 
-        formateurRepository.findByUtilisateur_Id(utilisateurId)
-                .ifPresent(formateurRepository::delete);
+        formateurRepository.findByUtilisateur_Id(utilisateurId).ifPresent(formateur -> {
+            if (!seanceRepository.findByFormateurId(formateur.getId()).isEmpty()) {
+                throw new RuntimeException(
+                        "Impossible de supprimer un enseignant assigné à des séances. Désactivez le compte à la place."
+                );
+            }
+            formateurRepository.delete(formateur);
+        });
         personnelRepository.findByUtilisateur_Id(utilisateurId)
                 .ifPresent(personnelRepository::delete);
 
         utilisateur.getRoles().clear();
         utilisateurRepository.save(utilisateur);
         utilisateurRepository.delete(utilisateur);
-    }
-
-    private Utilisateur assertAdmin(String adminEmail) {
-        Utilisateur admin = utilisateurRepository.findByEmail(adminEmail)
-                .orElseThrow(() -> new RuntimeException("Admin introuvable"));
-
-        if (!admin.hasRole(RoleName.ADMIN)) {
-            throw new RuntimeException("Accès refusé: seuls les administrateurs peuvent gérer les utilisateurs");
-        }
-
-        return admin;
     }
 
     private void updateProfiles(Utilisateur utilisateur, UpdateUserRequest request) {

@@ -21,8 +21,11 @@ public class NoteController {
 
     @PostMapping
     @PreAuthorize("hasAnyAuthority('ADMIN', 'FORMATEUR', 'RESPONSABLE_FORMATION')")
-    public NoteResponse saisirOuModifier(@RequestBody NoteSaisieRequest request) {
-        return noteService.saisirOuModifier(request);
+    public NoteResponse saisirOuModifier(
+            @RequestBody NoteSaisieRequest request,
+            Authentication authentication
+    ) {
+        return noteService.saisirOuModifier(request, authentication.getName());
     }
 
     @GetMapping("/etudiant/{etudiantId}")

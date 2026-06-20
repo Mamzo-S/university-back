@@ -309,20 +309,13 @@ public class EtudiantServiceImpl implements EtudiantService {
         Etudiant etudiant = etudiantRepository.findByUtilisateur_EmailWithProfile(userEmail)
                 .orElseThrow(() -> new RuntimeException("Profil étudiant introuvable"));
 
-        Filiere filiere = EtudiantProfileUtils.resolveFiliere(etudiant);
+        Filiere filiere = EtudiantProfileUtils.getStudentFiliere(etudiant);
 
-        if (filiere == null && (etudiant.getPromotion() == null || etudiant.getPromotion().getFormation() == null)) {
+        if (filiere == null) {
             throw new RuntimeException("Aucune filière associée à votre profil");
         }
 
-        NiveauEtude niveauEtudiant = etudiant.getNiveau();
-        List<Formation> formationsByScope = filiere != null
-                ? (niveauEtudiant != null
-                ? formationRepository.findByFiliereIdAndNiveau(filiere.getId(), niveauEtudiant)
-                : formationRepository.findByFiliereId(filiere.getId()))
-                : List.of();
-
-        List<Formation> formations = EtudiantProfileUtils.mergeAccessibleModules(etudiant, formationsByScope);
+        List<Formation> formations = EtudiantProfileUtils.findAccessibleModules(etudiant, formationRepository);
 
         List<FiliereModuleSummary> modules = formations.stream()
                 .sorted(Comparator.comparing(
@@ -346,10 +339,10 @@ public class EtudiantServiceImpl implements EtudiantService {
                 .toList();
 
         return EtudiantFiliereView.builder()
-                .id(filiere != null ? filiere.getId() : null)
-                .nom(filiere != null ? filiere.getNom() : null)
-                .description(filiere != null ? filiere.getDescription() : null)
-                .niveauEtudiant(niveauEtudiant != null ? niveauEtudiant.name() : null)
+                .id(filiere.getId())
+                .nom(filiere.getNom())
+                .description(filiere.getDescription())
+                .niveauEtudiant(etudiant.getNiveau() != null ? etudiant.getNiveau().name() : null)
                 .modules(modules)
                 .build();
     }

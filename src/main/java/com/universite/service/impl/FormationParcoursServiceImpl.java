@@ -29,15 +29,20 @@ public class FormationParcoursServiceImpl implements FormationParcoursService {
     @Override
     @Transactional(readOnly = true)
     public FormationParcoursDto getParcoursBySlug(String slug, String userEmail) {
-        Formation formation = findFormationBySlug(slug);
+        Formation formation = findFormationBySlugWithFiliere(slug);
         formationAccessService.assertCanReadFormation(formation, userEmail);
         return formationParcoursMapper.toDto(formation);
     }
 
     @Override
     @Transactional
-    public FormationParcoursDto updateParcours(Long formationId, FormationParcoursDto parcours) {
+    public FormationParcoursDto updateParcours(
+            Long formationId,
+            FormationParcoursDto parcours,
+            String userEmail
+    ) {
         Formation formation = findFormation(formationId);
+        formationAccessService.assertCanUpdateParcours(formation, userEmail);
         formationParcoursMapper.applyToFormation(formation, parcours);
         return formationParcoursMapper.toDto(formationRepository.save(formation));
     }
@@ -47,11 +52,11 @@ public class FormationParcoursServiceImpl implements FormationParcoursService {
                 .orElseThrow(() -> new RuntimeException("Formation introuvable"));
     }
 
-    private Formation findFormationBySlug(String slug) {
+    private Formation findFormationBySlugWithFiliere(String slug) {
         if (slug == null || slug.isBlank()) {
             throw new RuntimeException("Slug de formation invalide");
         }
-        return formationRepository.findBySlug(slug.trim())
+        return formationRepository.findBySlugWithFiliere(slug.trim())
                 .orElseThrow(() -> new RuntimeException("Formation introuvable"));
     }
 }

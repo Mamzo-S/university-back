@@ -3,6 +3,7 @@ package com.universite.auth;
 import com.universite.entity.*;
 import com.universite.repository.*;
 import com.universite.security.JwtService;
+import com.universite.security.UserManagementAuthorization;
 import com.universite.util.NiveauEtudeParser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,6 +29,7 @@ public class AuthService {
     private final PromotionRepository promotionRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final UserManagementAuthorization userManagementAuthorization;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -95,20 +97,14 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse createUser(CreateUserRequest request, String adminEmail) {
-        Utilisateur admin = utilisateurRepository
-                .findByEmail(adminEmail)
-                .orElseThrow(() -> new RuntimeException("Admin introuvable"));
-
-        if (!admin.hasRole(RoleName.ADMIN)) {
-            throw new RuntimeException("Accès refusé: seuls les administrateurs peuvent créer des utilisateurs");
-        }
+    public AuthResponse createUser(CreateUserRequest request, String actorEmail) {
+        Set<RoleName> roleNames = resolveRoleNames(request);
+        userManagementAuthorization.assertCanCreateUsers(actorEmail, roleNames);
 
         if (utilisateurRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("Email déjà utilisé");
         }
 
-        Set<RoleName> roleNames = resolveRoleNames(request);
         Set<Role> roles = new HashSet<>();
 
         for (RoleName roleName : roleNames) {

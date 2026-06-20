@@ -18,4 +18,11 @@ public class FormateurFormationSummary {
     private String slug;
     private Long filiereId;
     private String filiereNom;
+    private String description;
+    private String imageUrl;
+    private String niveau;
+    private String typeFormation;
+    private Integer subModuleCount;
+    private boolean assignee;
+    private boolean cree;
 }

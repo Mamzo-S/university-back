@@ -20,4 +20,7 @@ public class FormationRequest {
     private String dateFin;
     private BigDecimal montant;
     private Long filiereId;
+    /** Métadonnées parcours initiales (création par formateur). */
+    private String duration;
+    private String sessionUrl;
 }

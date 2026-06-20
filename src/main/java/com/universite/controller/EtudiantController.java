@@ -62,7 +62,7 @@ public class EtudiantController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'RESPONSABLE_FORMATION', 'FORMATEUR')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'RESPONSABLE_FORMATION')")
     public MembreResponse createEtudiant(
             @Valid @RequestBody CreateEtudiantRequest request,
             Authentication authentication

@@ -3,6 +3,7 @@ package com.universite.controller;
 import com.universite.auth.*;
 import com.universite.dto.MembreResponse;
 import com.universite.security.JwtService;
+import com.universite.security.UserManagementAuthorization;
 import com.universite.service.AdminUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -45,7 +46,7 @@ public class AuthController {
     }
 
     @PostMapping("/create-user")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'RESPONSABLE_FORMATION')")
     public AuthResponse createUser(
             @RequestBody CreateUserRequest request,
             @RequestHeader("Authorization") String bearerToken
@@ -68,7 +69,7 @@ public class AuthController {
     }
 
     @PutMapping("/users/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'RESPONSABLE_FORMATION')")
     public MembreResponse updateUser(
             @PathVariable Long id,
             @RequestBody UpdateUserRequest request,
@@ -79,7 +80,7 @@ public class AuthController {
     }
 
     @DeleteMapping("/users/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'RESPONSABLE_FORMATION')")
     public ResponseEntity<Void> deleteUser(
             @PathVariable Long id,
             @RequestHeader("Authorization") String bearerToken

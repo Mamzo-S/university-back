@@ -7,12 +7,18 @@ import com.universite.dto.NoteResponse;
 import com.universite.dto.NoteSaisieRequest;
 import com.universite.entity.Cours;
 import com.universite.entity.Etudiant;
+import com.universite.entity.Formateur;
+import com.universite.entity.Formation;
 import com.universite.entity.Note;
+import com.universite.entity.RoleName;
+import com.universite.entity.Utilisateur;
 import com.universite.repository.CoursRepository;
 import com.universite.repository.EtudiantRepository;
+import com.universite.repository.FormateurRepository;
 import com.universite.repository.NoteRepository;
 import com.universite.repository.UtilisateurRepository;
 import com.universite.service.NoteService;
+import com.universite.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +29,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,10 +40,12 @@ public class NoteServiceImpl implements NoteService {
     private final EtudiantRepository etudiantRepository;
     private final CoursRepository coursRepository;
     private final UtilisateurRepository utilisateurRepository;
+    private final FormateurRepository formateurRepository;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
-    public NoteResponse saisirOuModifier(NoteSaisieRequest request) {
+    public NoteResponse saisirOuModifier(NoteSaisieRequest request, String userEmail) {
         validateNoteRequest(request);
 
         Etudiant etudiant = etudiantRepository.findById(request.getEtudiantId())
@@ -44,6 +53,8 @@ public class NoteServiceImpl implements NoteService {
 
         Cours cours = coursRepository.findById(request.getCoursId())
                 .orElseThrow(() -> new RuntimeException("Cours introuvable"));
+
+        assertCanGradeCours(userEmail, cours);
 
         Note note = noteRepository.findByEtudiantIdAndCoursIdAndTypeEvaluationAndSemestreAndAnneeAcademique(
                         request.getEtudiantId(),
@@ -107,6 +118,8 @@ public class NoteServiceImpl implements NoteService {
         });
 
         noteRepository.saveAll(notes);
+        Etudiant etudiant = notes.get(0).getEtudiant();
+        notificationService.notifyBulletinPublished(etudiant, semestre, anneeAcademique);
         return construireBulletin(notes);
     }
 
@@ -300,5 +313,40 @@ public class NoteServiceImpl implements NoteService {
             return "";
         }
         return etudiant.getUtilisateur().getPrenom() + " " + etudiant.getUtilisateur().getNom();
+    }
+
+    private void assertCanGradeCours(String userEmail, Cours cours) {
+        Utilisateur utilisateur = utilisateurRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+
+        if (utilisateur.hasRole(RoleName.ADMIN)
+                || utilisateur.hasRole(RoleName.RESPONSABLE_FORMATION)) {
+            return;
+        }
+
+        if (!utilisateur.hasRole(RoleName.FORMATEUR)) {
+            throw new RuntimeException("Accès refusé à la saisie des notes");
+        }
+
+        Set<Long> assignedFormationIds = loadFormateurFormationIds(userEmail);
+        Long formationId = cours.getFormation() != null ? cours.getFormation().getId() : null;
+        if (formationId == null || !assignedFormationIds.contains(formationId)) {
+            throw new RuntimeException(
+                    "Vous ne pouvez saisir des notes que sur les modules qui vous sont assignés"
+            );
+        }
+    }
+
+    private Set<Long> loadFormateurFormationIds(String userEmail) {
+        Formateur formateur = formateurRepository.findWithFormationsByUtilisateur_Email(userEmail)
+                .orElseThrow(() -> new RuntimeException("Profil formateur introuvable"));
+
+        if (formateur.getFormations() == null) {
+            return Set.of();
+        }
+
+        return formateur.getFormations().stream()
+                .map(Formation::getId)
+                .collect(Collectors.toSet());
     }
 }

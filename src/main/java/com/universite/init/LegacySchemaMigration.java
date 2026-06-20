@@ -25,7 +25,34 @@ public class LegacySchemaMigration implements CommandLineRunner {
         migrateUtilisateurRoles();
         migrateEtudiantsTable();
         migrateEmploisDuTemps();
+        migrateNotificationsTable();
         migrateCatalog();
+    }
+
+    private void migrateNotificationsTable() {
+        if (tableExists("notifications")) {
+            return;
+        }
+        jdbcTemplate.execute("""
+                CREATE TABLE notifications (
+                    id_notification BIGSERIAL PRIMARY KEY,
+                    id_utilisateur BIGINT NOT NULL REFERENCES utilisateurs(id_utilisateur),
+                    titre VARCHAR(200) NOT NULL,
+                    message VARCHAR(2000) NOT NULL,
+                    type VARCHAR(40) NOT NULL,
+                    lu BOOLEAN NOT NULL DEFAULT FALSE,
+                    date_creation TIMESTAMP NOT NULL DEFAULT NOW(),
+                    lien VARCHAR(255),
+                    reference_id BIGINT
+                )
+                """);
+        jdbcTemplate.execute(
+                "CREATE INDEX idx_notifications_utilisateur ON notifications(id_utilisateur)"
+        );
+        jdbcTemplate.execute(
+                "CREATE INDEX idx_notifications_utilisateur_lu ON notifications(id_utilisateur, lu)"
+        );
+        log.info("Migration : table notifications créée");
     }
 
     private void migrateCatalog() {

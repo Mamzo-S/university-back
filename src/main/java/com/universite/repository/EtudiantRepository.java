@@ -137,4 +137,57 @@ public interface EtudiantRepository extends JpaRepository<Etudiant, Long> {
     List<Etudiant> findByFormationIds(@Param("formationIds") List<Long> formationIds);
 
     long countByPromotion_Formation_Filiere_Id(Long filiereId);
+
+    @Query("""
+            SELECT COUNT(e) FROM Etudiant e
+            WHERE e.promotion.formation.id = :formationId
+            """)
+    long countByFormationId(@Param("formationId") Long formationId);
+
+    @Query("""
+            SELECT COUNT(DISTINCT e) FROM Etudiant e
+            LEFT JOIN e.filiere ef
+            LEFT JOIN e.promotion p
+            LEFT JOIN p.formation pf
+            LEFT JOIN pf.filiere pff
+            WHERE p.formation.id = :formationId
+               OR (
+                   :filiereId IS NOT NULL
+                   AND :niveau IS NOT NULL
+                   AND e.niveau = :niveau
+                   AND COALESCE(ef.id, pff.id) = :filiereId
+               )
+            """)
+    long countByFormationScope(
+            @Param("formationId") Long formationId,
+            @Param("filiereId") Long filiereId,
+            @Param("niveau") com.universite.entity.NiveauEtude niveau
+    );
+
+    @Query("""
+            SELECT DISTINCT e FROM Etudiant e
+            JOIN FETCH e.utilisateur
+            LEFT JOIN FETCH e.filiere
+            LEFT JOIN FETCH e.promotion p
+            LEFT JOIN FETCH p.formation pf
+            WHERE e.niveau = :niveau
+            ORDER BY e.id
+            """)
+    List<Etudiant> findByNiveau(@Param("niveau") com.universite.entity.NiveauEtude niveau);
+
+    @Query("""
+            SELECT DISTINCT e FROM Etudiant e
+            JOIN FETCH e.utilisateur
+            LEFT JOIN FETCH e.filiere ef
+            LEFT JOIN FETCH e.promotion p
+            LEFT JOIN FETCH p.formation pf
+            LEFT JOIN FETCH pf.filiere pff
+            WHERE e.niveau = :niveau
+              AND COALESCE(ef.id, pff.id) = :filiereId
+            ORDER BY e.id
+            """)
+    List<Etudiant> findByFiliereIdAndNiveau(
+            @Param("filiereId") Long filiereId,
+            @Param("niveau") com.universite.entity.NiveauEtude niveau
+    );
 }

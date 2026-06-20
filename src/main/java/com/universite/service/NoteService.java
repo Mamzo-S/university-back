@@ -8,7 +8,7 @@ import com.universite.dto.NoteSaisieRequest;
 import java.util.List;
 
 public interface NoteService {
-    NoteResponse saisirOuModifier(NoteSaisieRequest request);
+    NoteResponse saisirOuModifier(NoteSaisieRequest request, String userEmail);
     List<NoteResponse> listerNotesEtudiant(Long etudiantId);
     List<NoteResponse> listerMesNotes(String emailUtilisateurConnecte);
     BulletinResponse publierBulletin(Long etudiantId, String semestre, String anneeAcademique);
