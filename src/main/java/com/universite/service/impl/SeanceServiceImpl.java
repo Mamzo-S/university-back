@@ -5,8 +5,8 @@ import com.universite.dto.SeanceResponse;
 import com.universite.entity.*;
 import com.universite.mapper.SeanceMapper;
 import com.universite.repository.*;
+import com.universite.service.EmploiDuTempsService;
 import com.universite.service.SeanceService;
-import com.universite.util.EtudiantProfileUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,8 +26,8 @@ public class SeanceServiceImpl implements SeanceService {
     private final FormationRepository formationRepository;
     private final FormateurRepository formateurRepository;
     private final PromotionRepository promotionRepository;
-    private final EtudiantRepository etudiantRepository;
     private final UtilisateurRepository utilisateurRepository;
+    private final EmploiDuTempsService emploiDuTempsService;
 
     @Override
     @Transactional(readOnly = true)
@@ -64,25 +64,7 @@ public class SeanceServiceImpl implements SeanceService {
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
         if (utilisateur.hasRole(RoleName.ETUDIANT)) {
-            Etudiant etudiant = etudiantRepository.findByUtilisateur_Id(utilisateur.getId())
-                    .orElseThrow(() -> new RuntimeException("Profil étudiant introuvable"));
-
-            Filiere filiere = EtudiantProfileUtils.resolveFiliere(etudiant);
-            if (filiere == null) {
-                throw new RuntimeException("Aucune filière associée à votre profil");
-            }
-
-            NiveauEtude niveau = etudiant.getNiveau();
-            if (niveau == null) {
-                throw new RuntimeException("Aucun niveau d'études associé à votre profil");
-            }
-
-            return seanceRepository.findByFormationFiliereIdAndNiveau(filiere.getId(), niveau).stream()
-                    .sorted(Comparator
-                            .comparing((Seance s) -> s.getJourSemaine().getIndex())
-                            .thenComparing(Seance::getHeureDebut))
-                    .map(SeanceMapper::toResponse)
-                    .toList();
+            return emploiDuTempsService.getForCurrentEtudiant(userEmail);
         }
 
         if (utilisateur.hasRole(RoleName.FORMATEUR)) {
@@ -138,9 +120,6 @@ public class SeanceServiceImpl implements SeanceService {
         Cours cours = resolveCours(request);
         Formateur formateur = formateurRepository.findById(request.getFormateurId())
                 .orElseThrow(() -> new RuntimeException("Formateur introuvable"));
-        Promotion promotion = emploiDuTemps.getPromotion();
-
-        validateFormationCoherence(cours, promotion);
 
         LocalTime debut = parseTime(request.getHeureDebut(), "heure de début");
         LocalTime fin = parseTime(request.getHeureFin(), "heure de fin");
@@ -218,18 +197,6 @@ public class SeanceServiceImpl implements SeanceService {
                     .build();
             return coursRepository.save(cours);
         });
-    }
-
-    private void validateFormationCoherence(Cours cours, Promotion promotion) {
-        if (promotion.getFormation() == null) {
-            return;
-        }
-        if (cours.getFormation() == null
-                || !cours.getFormation().getId().equals(promotion.getFormation().getId())) {
-            throw new RuntimeException(
-                    "La formation doit correspondre à celle de la promotion"
-            );
-        }
     }
 
     private void validateNoConflict(Seance seance, Long excludeId) {

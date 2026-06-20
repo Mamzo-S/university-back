@@ -13,6 +13,7 @@ import com.universite.mapper.FormationMapper;
 import com.universite.mapper.MembreMapper;
 import com.universite.repository.*;
 import com.universite.service.EtudiantService;
+import com.universite.util.EtudiantProfileUtils;
 import com.universite.util.NiveauEtudeParser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -303,24 +304,23 @@ public class EtudiantServiceImpl implements EtudiantService {
     @Override
     @Transactional(readOnly = true)
     public EtudiantFiliereView getMyFiliereView(String userEmail) {
-        Etudiant etudiant = etudiantRepository.findByUtilisateur_Email(userEmail)
+        Etudiant etudiant = etudiantRepository.findByUtilisateur_EmailWithProfile(userEmail)
                 .orElseThrow(() -> new RuntimeException("Profil étudiant introuvable"));
 
-        Filiere filiere = etudiant.getFiliere();
-        if (filiere == null && etudiant.getPromotion() != null
-                && etudiant.getPromotion().getFormation() != null
-                && etudiant.getPromotion().getFormation().getFiliere() != null) {
-            filiere = etudiant.getPromotion().getFormation().getFiliere();
-        }
+        Filiere filiere = EtudiantProfileUtils.resolveFiliere(etudiant);
 
-        if (filiere == null) {
+        if (filiere == null && (etudiant.getPromotion() == null || etudiant.getPromotion().getFormation() == null)) {
             throw new RuntimeException("Aucune filière associée à votre profil");
         }
 
         NiveauEtude niveauEtudiant = etudiant.getNiveau();
-        List<Formation> formations = niveauEtudiant != null
+        List<Formation> formationsByScope = filiere != null
+                ? (niveauEtudiant != null
                 ? formationRepository.findByFiliereIdAndNiveau(filiere.getId(), niveauEtudiant)
-                : formationRepository.findByFiliereId(filiere.getId());
+                : formationRepository.findByFiliereId(filiere.getId()))
+                : List.of();
+
+        List<Formation> formations = EtudiantProfileUtils.mergeAccessibleModules(etudiant, formationsByScope);
 
         List<FiliereModuleSummary> modules = formations.stream()
                 .sorted(Comparator.comparing(
@@ -341,9 +341,9 @@ public class EtudiantServiceImpl implements EtudiantService {
                 .toList();
 
         return EtudiantFiliereView.builder()
-                .id(filiere.getId())
-                .nom(filiere.getNom())
-                .description(filiere.getDescription())
+                .id(filiere != null ? filiere.getId() : null)
+                .nom(filiere != null ? filiere.getNom() : null)
+                .description(filiere != null ? filiere.getDescription() : null)
                 .niveauEtudiant(niveauEtudiant != null ? niveauEtudiant.name() : null)
                 .modules(modules)
                 .build();

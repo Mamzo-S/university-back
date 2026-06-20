@@ -4,7 +4,6 @@ import com.universite.dto.EmploiDuTempsResponse;
 import com.universite.dto.SeanceResponse;
 import com.universite.entity.*;
 import com.universite.mapper.EmploiDuTempsMapper;
-import com.universite.mapper.PromotionMapper;
 import com.universite.mapper.SeanceMapper;
 import com.universite.repository.EmploiDuTempsRepository;
 import com.universite.repository.EtudiantRepository;
@@ -42,14 +41,14 @@ public class EmploiDuTempsServiceImpl implements EmploiDuTempsService {
 
     @Override
     @Transactional(readOnly = true)
-    public EmploiDuTempsResponse getForCurrentEtudiant(String userEmail) {
+    public List<SeanceResponse> getForCurrentEtudiant(String userEmail) {
         Etudiant etudiant = loadEtudiantByEmail(userEmail);
-        return buildEmploiDuTempsForEtudiant(etudiant);
+        return listSeancesForEtudiant(etudiant);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public EmploiDuTempsResponse getForEtudiant(Long etudiantId, String requesterEmail) {
+    public List<SeanceResponse> getForEtudiant(Long etudiantId, String requesterEmail) {
         Utilisateur requester = utilisateurRepository.findByEmail(requesterEmail)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
@@ -57,14 +56,11 @@ public class EmploiDuTempsServiceImpl implements EmploiDuTempsService {
                 .orElseThrow(() -> new RuntimeException("Étudiant introuvable"));
 
         assertCanViewEtudiantSchedule(requester, etudiant);
-        return buildEmploiDuTempsForEtudiant(etudiant);
+        return listSeancesForEtudiant(etudiant);
     }
 
     private Etudiant loadEtudiantByEmail(String userEmail) {
-        Utilisateur utilisateur = utilisateurRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
-
-        return etudiantRepository.findByUtilisateur_Id(utilisateur.getId())
+        return etudiantRepository.findByUtilisateur_EmailWithProfile(userEmail)
                 .orElseThrow(() -> new RuntimeException("Profil étudiant introuvable"));
     }
 
@@ -87,36 +83,31 @@ public class EmploiDuTempsServiceImpl implements EmploiDuTempsService {
         throw new RuntimeException("Consultation de l'emploi du temps non disponible pour ce rôle");
     }
 
-    private EmploiDuTempsResponse buildEmploiDuTempsForEtudiant(Etudiant etudiant) {
+    /** Séances des modules accessibles (filière + niveau, ou module de la promotion). */
+    private List<SeanceResponse> listSeancesForEtudiant(Etudiant etudiant) {
         Filiere filiere = EtudiantProfileUtils.resolveFiliere(etudiant);
-        if (filiere == null) {
+        NiveauEtude niveau = etudiant.getNiveau();
+
+        Long promotionFormationId = etudiant.getPromotion() != null
+                && etudiant.getPromotion().getFormation() != null
+                ? etudiant.getPromotion().getFormation().getId()
+                : null;
+
+        if (filiere == null && promotionFormationId == null) {
             throw new RuntimeException("Aucune filière associée à cet étudiant");
         }
-
-        NiveauEtude niveau = etudiant.getNiveau();
-        if (niveau == null) {
+        if (niveau == null && promotionFormationId == null) {
             throw new RuntimeException("Aucun niveau d'études associé à cet étudiant");
         }
 
-        List<SeanceResponse> seances = seanceRepository
-                .findByFormationFiliereIdAndNiveau(filiere.getId(), niveau)
-                .stream()
+        Long filiereId = filiere != null ? filiere.getId() : null;
+
+        return seanceRepository.findVisibleForEtudiant(filiereId, niveau, promotionFormationId).stream()
                 .sorted(Comparator
                         .comparing((Seance s) -> s.getJourSemaine().getIndex())
                         .thenComparing(Seance::getHeureDebut))
                 .map(SeanceMapper::toResponse)
                 .toList();
-
-        Promotion promotion = etudiant.getPromotion();
-        return EmploiDuTempsResponse.builder()
-                .id(0L)
-                .promotionId(promotion != null ? promotion.getId() : null)
-                .promotionNom(promotion != null ? PromotionMapper.resolveTitre(promotion) : null)
-                .libelle("Emploi du temps")
-                .publie(true)
-                .effectif(0L)
-                .seances(seances)
-                .build();
     }
 
     @Override

@@ -1,6 +1,5 @@
 package com.universite.repository;
 
-import com.universite.entity.NiveauEtude;
 import com.universite.entity.Seance;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -19,21 +18,32 @@ public interface SeanceRepository extends JpaRepository<Seance, Long> {
     List<Seance> findByEmploiDuTemps_Promotion_Formation_Id(Long formationId);
 
     /**
-     * Séances dont la formation (module) est dans la filière et le niveau donnés.
+     * Séances dont le module est accessible à l'étudiant :
+     * même filière + niveau que le module, ou module rattaché à sa promotion.
+     * (Inverse de {@link EtudiantRepository#findByModuleScope}.)
      */
     @Query("""
             SELECT DISTINCT s FROM Seance s
             JOIN FETCH s.cours c
             JOIN FETCH c.formation f
+            LEFT JOIN FETCH f.filiere ff
             JOIN FETCH s.formateur fm
             JOIN FETCH fm.utilisateur
             JOIN FETCH s.emploiDuTemps e
-            JOIN FETCH e.promotion
-            WHERE f.filiere.id = :filiereId
-              AND f.niveau = :niveau
+            JOIN FETCH e.promotion ep
+            WHERE (
+                :promotionFormationId IS NOT NULL
+                AND f.id = :promotionFormationId
+            ) OR (
+                :filiereId IS NOT NULL
+                AND :niveau IS NOT NULL
+                AND f.niveau = :niveau
+                AND ff.id = :filiereId
+            )
             """)
-    List<Seance> findByFormationFiliereIdAndNiveau(
+    List<Seance> findVisibleForEtudiant(
             @Param("filiereId") Long filiereId,
-            @Param("niveau") NiveauEtude niveau
+            @Param("niveau") com.universite.entity.NiveauEtude niveau,
+            @Param("promotionFormationId") Long promotionFormationId
     );
 }

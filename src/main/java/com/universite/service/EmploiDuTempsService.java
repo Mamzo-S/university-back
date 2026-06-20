@@ -10,9 +10,9 @@ public interface EmploiDuTempsService {
 
     EmploiDuTempsResponse getByPromotion(Long promotionId);
 
-    EmploiDuTempsResponse getForCurrentEtudiant(String userEmail);
+    List<SeanceResponse> getForCurrentEtudiant(String userEmail);
 
-    EmploiDuTempsResponse getForEtudiant(Long etudiantId, String requesterEmail);
+    List<SeanceResponse> getForEtudiant(Long etudiantId, String requesterEmail);
 
     List<SeanceResponse> getSeancesForCurrentFormateur(String userEmail);
 

@@ -1,7 +1,7 @@
 package com.universite.controller;
 
-import com.universite.dto.EmploiDuTempsResponse;
 import com.universite.dto.EtudiantFiliereView;
+import com.universite.dto.SeanceResponse;
 import com.universite.service.EmploiDuTempsService;
 import com.universite.service.EtudiantService;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +10,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * Routes « moi » de l'étudiant connecté (JWT).
@@ -29,10 +31,10 @@ public class EtudiantMeController {
         return etudiantService.getMyFiliereView(authentication.getName());
     }
 
-    /** Emploi du temps : séances des formations (même filière + niveau). */
+    /** Séances des modules (filière + niveau de l'étudiant). */
     @GetMapping("/seances")
     @PreAuthorize("hasAuthority('ETUDIANT')")
-    public EmploiDuTempsResponse mySeances(Authentication authentication) {
+    public List<SeanceResponse> mySeances(Authentication authentication) {
         return emploiDuTempsService.getForCurrentEtudiant(authentication.getName());
     }
 }

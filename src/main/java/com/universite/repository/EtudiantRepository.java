@@ -18,6 +18,17 @@ public interface EtudiantRepository extends JpaRepository<Etudiant, Long> {
 
     Optional<Etudiant> findByUtilisateur_Email(String email);
 
+    @Query("""
+            SELECT e FROM Etudiant e
+            JOIN FETCH e.utilisateur
+            LEFT JOIN FETCH e.filiere
+            LEFT JOIN FETCH e.promotion p
+            LEFT JOIN FETCH p.formation pf
+            LEFT JOIN FETCH pf.filiere
+            WHERE e.utilisateur.email = :email
+            """)
+    Optional<Etudiant> findByUtilisateur_EmailWithProfile(@Param("email") String email);
+
     Page<Etudiant> findByUtilisateur_NomContainingIgnoreCase(
             String nom,
             Pageable pageable

@@ -1,9 +1,9 @@
 package com.universite.controller;
 
 import com.universite.dto.CreateEtudiantRequest;
-import com.universite.dto.EmploiDuTempsResponse;
 import com.universite.dto.EtudiantDTO;
 import com.universite.dto.MembreResponse;
+import com.universite.dto.SeanceResponse;
 import com.universite.dto.UpdateEtudiantRequest;
 import com.universite.entity.Etudiant;
 import com.universite.service.EmploiDuTempsService;
@@ -72,7 +72,7 @@ public class EtudiantController {
 
     @GetMapping("/{id:\\d+}/seances")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'RESPONSABLE_FORMATION', 'FORMATEUR', 'ETUDIANT')")
-    public EmploiDuTempsResponse seancesForEtudiant(
+    public List<SeanceResponse> seancesForEtudiant(
             @PathVariable Long id,
             Authentication authentication
     ) {
