@@ -1,5 +1,6 @@
 package com.universite.dto;
 
+import com.universite.entity.NiveauEtude;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -15,19 +16,31 @@ public class EtudiantDTO {
 
     private String ine;
 
+    private Long utilisateurId;
+
     private String nom;
 
     private String prenom;
 
+    private String email;
+
     private LocalDate dateNaissance;
 
-    private String genre;
+    private NiveauEtude niveau;
 
-    private Integer anneeDebut;
+    private Long promotionId;
 
-    private Integer anneeSortie;
+    private String promotionNom;
 
     private Long formationId;
 
     private String formationNom;
+
+    private Long filiereId;
+
+    private String filiereNom;
+
+    private Long groupeEtudiantId;
+
+    private String groupeEtudiantNom;
 }

@@ -23,9 +23,22 @@ public class Formation {
 
     private String nom;
 
+    @Column
+    private String titre;
+
+    @Column(unique = true)
+    private String slug;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    private String imageUrl;
+
     private String typeFormation;
 
-    private String niveau;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "niveau")
+    private NiveauEtude niveau;
 
     private LocalDate dateDebut;
 
@@ -44,11 +57,11 @@ public class Formation {
     private Filiere filiere;
 
     // =========================
-    // RELATION ETUDIANTS
+    // RELATION PROMOTIONS
     // =========================
 
     @OneToMany(mappedBy = "formation")
     @JsonIgnore
-    private List<Etudiant> etudiants;
+    private List<Promotion> promotions;
 }
 

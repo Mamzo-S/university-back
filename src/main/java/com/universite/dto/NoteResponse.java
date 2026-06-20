@@ -10,7 +10,9 @@ public class NoteResponse {
     private Long etudiantId;
     private String etudiantNomComplet;
     private Long coursId;
+    private String coursCode;
     private String coursNom;
+    private Double coursCoefficient;
     private String typeEvaluation;
     private Double valeur;
     private String anneeAcademique;

@@ -28,7 +28,7 @@ public class Cours {
     @Column(nullable = false)
     private Double coefficient;
 
-    @ManyToOne
+    @ManyToOne(optional = false)
     @JoinColumn(name = "formation_id", nullable = false)
     private Formation formation;
 }

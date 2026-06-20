@@ -7,67 +7,103 @@ import com.universite.repository.RoleRepository;
 import com.universite.repository.UtilisateurRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Map;
 
+@Slf4j
 @Component
+@Order(1)
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
+
+    private static final String DEFAULT_ADMIN_EMAIL = "admin@universite.sn";
+    private static final String DEFAULT_ADMIN_PASSWORD = "admin123";
+
+    private static final Map<RoleName, String> ROLE_DESCRIPTIONS = Map.of(
+            RoleName.ADMIN, "Administrateur système",
+            RoleName.FORMATEUR, "Enseignant / formateur",
+            RoleName.ETUDIANT, "Étudiant",
+            RoleName.PERSONNEL_ADMIN, "Personnel administratif",
+            RoleName.TUTEUR, "Tuteur pédagogique",
+            RoleName.RESPONSABLE_FORMATION, "Responsable de formation",
+            RoleName.SERVICE_INSERTION, "Service insertion professionnelle"
+    );
 
     private final RoleRepository roleRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
+    @Transactional
     public void run(String... args) {
+        seedRoles();
+        ensureDefaultAdmin();
+    }
 
-        // =========================
-        // CREATION DES ROLES
-        // =========================
-
+    private void seedRoles() {
         for (RoleName roleName : RoleName.values()) {
+            roleRepository.findByNom(roleName).ifPresentOrElse(
+                    existing -> {
+                        String description = ROLE_DESCRIPTIONS.get(roleName);
+                        if (existing.getDescription() == null && description != null) {
+                            existing.setDescription(description);
+                            roleRepository.save(existing);
+                        }
+                    },
+                    () -> {
+                        Role role = Role.builder()
+                                .nom(roleName)
+                                .description(ROLE_DESCRIPTIONS.get(roleName))
+                                .build();
+                        roleRepository.save(role);
+                        log.info("Rôle créé : {}", roleName);
+                    }
+            );
+        }
+    }
 
-            if (roleRepository.findByNom(roleName).isEmpty()) {
+    private void ensureDefaultAdmin() {
+        Role adminRole = roleRepository
+                .findByNom(RoleName.ADMIN)
+                .orElseThrow(() -> new IllegalStateException("Rôle ADMIN introuvable après seed"));
 
-                Role role = Role.builder()
-                        .nom(roleName)
-                        .build();
+        utilisateurRepository.findByEmail(DEFAULT_ADMIN_EMAIL).ifPresentOrElse(
+                existing -> linkAdminRoleIfMissing(existing, adminRole),
+                () -> createDefaultAdmin(adminRole)
+        );
+    }
 
-                roleRepository.save(role);
-            }
+    private void linkAdminRoleIfMissing(Utilisateur admin, Role adminRole) {
+        if (admin.hasRole(RoleName.ADMIN)) {
+            return;
         }
 
-        // =========================
-        // CREATION ADMIN
-        // =========================
+        admin.addRole(adminRole);
+        utilisateurRepository.save(admin);
+        log.info("Rôle ADMIN rattaché au compte existant {}", DEFAULT_ADMIN_EMAIL);
+    }
 
-        String adminEmail = "admin@universite.sn";
+    private void createDefaultAdmin(Role adminRole) {
+        Utilisateur admin = Utilisateur.builder()
+                .nom("Admin")
+                .prenom("Université")
+                .email(DEFAULT_ADMIN_EMAIL)
+                .motDePasse(passwordEncoder.encode(DEFAULT_ADMIN_PASSWORD))
+                .actif(true)
+                .roles(new HashSet<>())
+                .build();
 
-        if (utilisateurRepository.findByEmail(adminEmail).isEmpty()) {
+        admin.addRole(adminRole);
+        utilisateurRepository.save(admin);
 
-            Role adminRole = roleRepository
-                    .findByNom(RoleName.ADMIN)
-                    .orElseThrow();
-
-            Utilisateur admin = Utilisateur.builder()
-                    .nom("Admin")
-                    .prenom("Université")
-                    .email(adminEmail)
-                    .motDePasse(
-                            passwordEncoder.encode("admin123")
-                    )
-                    .actif(true)
-                    .dateCreation(LocalDateTime.now())
-                    .role(adminRole)
-                    .build();
-
-            utilisateurRepository.save(admin);
-
-            System.out.println("ADMIN CREE AVEC SUCCES");
-        }
+        log.info("Compte admin par défaut créé : {} / {}", DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASSWORD);
     }
 }

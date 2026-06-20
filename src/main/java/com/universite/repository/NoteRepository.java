@@ -8,6 +8,7 @@ import java.util.Optional;
 
 public interface NoteRepository extends JpaRepository<Note, Long> {
     List<Note> findByEtudiantId(Long etudiantId);
+    List<Note> findByEtudiantIdAndBulletinPublieTrue(Long etudiantId);
     List<Note> findByEtudiantIdAndSemestreAndAnneeAcademique(Long etudiantId, String semestre, String anneeAcademique);
     List<Note> findByEtudiantIdAndSemestreAndAnneeAcademiqueAndBulletinPublieTrue(Long etudiantId, String semestre, String anneeAcademique);
     List<Note> findByCoursId(Long coursId);

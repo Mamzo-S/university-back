@@ -17,19 +17,19 @@ public class CoursController {
     private final CoursService coursService;
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'PROFESSEUR')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'FORMATEUR', 'RESPONSABLE_FORMATION')")
     public CoursResponse create(@RequestBody CoursRequest request) {
         return coursService.create(request);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'PROFESSEUR')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'FORMATEUR', 'RESPONSABLE_FORMATION')")
     public CoursResponse update(@PathVariable Long id, @RequestBody CoursRequest request) {
         return coursService.update(id, request);
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'PROFESSEUR', 'ETUDIANT')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'FORMATEUR', 'RESPONSABLE_FORMATION', 'ETUDIANT')")
     public List<CoursResponse> getAll(
             @RequestParam(required = false) Long formationId
     ) {
@@ -40,13 +40,13 @@ public class CoursController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'PROFESSEUR', 'ETUDIANT')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'FORMATEUR', 'RESPONSABLE_FORMATION', 'ETUDIANT')")
     public CoursResponse getById(@PathVariable Long id) {
         return coursService.getById(id);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'PROFESSEUR')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'FORMATEUR', 'RESPONSABLE_FORMATION')")
     public void delete(@PathVariable Long id) {
         coursService.delete(id);
     }

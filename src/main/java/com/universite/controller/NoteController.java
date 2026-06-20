@@ -1,6 +1,7 @@
 package com.universite.controller;
 
 import com.universite.dto.BulletinResponse;
+import com.universite.dto.BulletinSummaryResponse;
 import com.universite.dto.NoteResponse;
 import com.universite.dto.NoteSaisieRequest;
 import com.universite.service.NoteService;
@@ -19,13 +20,13 @@ public class NoteController {
     private final NoteService noteService;
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'PROFESSEUR')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'FORMATEUR', 'RESPONSABLE_FORMATION')")
     public NoteResponse saisirOuModifier(@RequestBody NoteSaisieRequest request) {
         return noteService.saisirOuModifier(request);
     }
 
     @GetMapping("/etudiant/{etudiantId}")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'PROFESSEUR')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'FORMATEUR', 'RESPONSABLE_FORMATION')")
     public List<NoteResponse> listerNotesEtudiant(@PathVariable Long etudiantId) {
         return noteService.listerNotesEtudiant(etudiantId);
     }
@@ -37,7 +38,7 @@ public class NoteController {
     }
 
     @PostMapping("/bulletins/publier")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'PROFESSEUR')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'FORMATEUR', 'RESPONSABLE_FORMATION')")
     public BulletinResponse publierBulletin(
             @RequestParam Long etudiantId,
             @RequestParam String semestre,
@@ -47,7 +48,7 @@ public class NoteController {
     }
 
     @GetMapping("/bulletins")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'PROFESSEUR')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'FORMATEUR', 'RESPONSABLE_FORMATION')")
     public BulletinResponse consulterBulletinPublie(
             @RequestParam Long etudiantId,
             @RequestParam String semestre,
@@ -64,5 +65,11 @@ public class NoteController {
             @RequestParam String anneeAcademique
     ) {
         return noteService.consulterMonBulletinPublie(authentication.getName(), semestre, anneeAcademique);
+    }
+
+    @GetMapping("/bulletins/me/list")
+    @PreAuthorize("hasAuthority('ETUDIANT')")
+    public List<BulletinSummaryResponse> listerMesBulletins(Authentication authentication) {
+        return noteService.listerMesBulletins(authentication.getName());
     }
 }

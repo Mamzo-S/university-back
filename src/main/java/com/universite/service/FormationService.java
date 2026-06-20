@@ -1,13 +1,19 @@
 package com.universite.service;
 
-import com.universite.entity.Formation;
+import com.universite.dto.FormationRequest;
+import com.universite.dto.FormationResponse;
 
 import java.util.List;
 
 public interface FormationService {
 
-    Formation ajouterFormation(Formation formation);
+    FormationResponse create(FormationRequest request);
 
-    List<Formation> getAllFormations();
+    List<FormationResponse> getAll();
+
+    FormationResponse getById(Long id);
+
+    FormationResponse update(Long id, FormationRequest request);
+
+    void delete(Long id);
 }
-

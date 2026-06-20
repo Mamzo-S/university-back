@@ -18,31 +18,41 @@ public class Etudiant {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_etudiant")
     private Long id;
 
     @NotBlank(message = "INE obligatoire")
     @Column(unique = true)
     private String ine;
 
-    @NotBlank(message = "Le nom est obligatoire")
-    private String nom;
-
-    @NotBlank(message = "Le prénom est obligatoire")
-    private String prenom;
-
     @NotNull(message = "La date de naissance est obligatoire")
+    @Column(name = "date_naissance")
     private LocalDate dateNaissance;
 
-    @NotBlank(message = "Le genre est obligatoire")
-    private String genre;
+    @Column(name = "annee_entree")
+    private Integer anneeEntree;
 
-    @NotNull(message = "Année début obligatoire")
-    private Integer anneeDebut;
-
-    @NotNull(message = "Année sortie obligatoire")
+    @Column(name = "annee_sortie")
     private Integer anneeSortie;
 
+    @NotNull(message = "Le niveau est obligatoire")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "niveau", nullable = false)
+    private NiveauEtude niveau;
+
+    @OneToOne
+    @JoinColumn(name = "id_utilisateur", unique = true, nullable = false)
+    private Utilisateur utilisateur;
+
     @ManyToOne
-    @JoinColumn(name = "formation_id")
-    private Formation formation;
+    @JoinColumn(name = "id_filiere")
+    private Filiere filiere;
+
+    @ManyToOne
+    @JoinColumn(name = "id_promotion")
+    private Promotion promotion;
+
+    @ManyToOne
+    @JoinColumn(name = "id_groupe_etudiant")
+    private GroupeEtudiant groupeEtudiant;
 }

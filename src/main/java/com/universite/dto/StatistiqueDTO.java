@@ -14,4 +14,8 @@ public class StatistiqueDTO {
     private long totalHommes;
 
     private long totalFemmes;
+
+    private long totalFormateurs;
+
+    private long totalPersonnels;
 }
